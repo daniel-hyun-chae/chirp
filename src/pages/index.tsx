@@ -7,6 +7,7 @@ import { api, type RouterOutputs } from "y/utils/api";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { LoadingPage } from "y/components/loading";
 dayjs.extend(relativeTime);
 
 const CreatePostWizard = () => {
@@ -33,7 +34,6 @@ const CreatePostWizard = () => {
 type PostWithUser = RouterOutputs["posts"]["getAll"][number];
 const PostView = (props: PostWithUser) => {
   const { post, author } = props;
-  console.log(author);
   return (
     <div
       key={post.id}
@@ -58,13 +58,27 @@ const PostView = (props: PostWithUser) => {
   );
 };
 
-const Home: NextPage = () => {
-  const { data, isLoading } = api.posts.getAll.useQuery();
+const Feed = () => {
+  const { data, isLoading: isPostLoading } = api.posts.getAll.useQuery();
 
-  const user = useUser();
+  if (isPostLoading) return <LoadingPage />;
 
-  if (isLoading) return <div>Loading...</div>;
   if (!data) return <div>Something went wrong</div>;
+  return (
+    <div className="flex flex-col">
+      {data.map((fullPost) => (
+        <PostView key={fullPost.post.id} {...fullPost} />
+      ))}
+    </div>
+  );
+};
+
+const Home: NextPage = () => {
+  // Start fetching early
+  api.posts.getAll.useQuery();
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
+
+  if (!userLoaded) return <div></div>;
 
   return (
     <>
@@ -76,18 +90,14 @@ const Home: NextPage = () => {
       <main className="flex h-screen justify-center">
         <div className="w-full border-x border-slate-400 md:max-w-2xl">
           <div className="flex border-b border-slate-400 p-4">
-            {!user.isSignedIn && (
+            {!isSignedIn && (
               <div className="flex justify-center">
                 <SignInButton />
               </div>
             )}
-            {user.isSignedIn && <CreatePostWizard />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {data.map((fullPost) => (
-              <PostView key={fullPost.post.id} {...fullPost} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
