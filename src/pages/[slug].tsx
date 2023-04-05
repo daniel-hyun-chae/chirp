@@ -8,6 +8,11 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
+import { PageLayout } from "y/components/layout";
+import { LoadingPage } from "y/components/loading";
+import { PostView } from "y/components/postview";
+import { generateSSGHelper } from "y/server/helpers/ssgHelper";
+
 const ProfileFeed = (props: { userId: string }) => {
   const { data, isLoading } = api.posts.getPostsByUserId.useQuery({
     userId: props.userId,
@@ -57,20 +62,8 @@ const ProfilePage: NextPage<{ userId: string }> = ({ userId }) => {
   );
 };
 
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
-import { prisma } from "y/server/db";
-import superjson from "superjson";
-import { appRouter } from "y/server/api/root";
-import { PageLayout } from "y/components/layout";
-import { LoadingPage } from "y/components/loading";
-import { PostView } from "y/components/postview";
-
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createProxySSGHelpers({
-    router: appRouter,
-    ctx: { prisma, userId: null },
-    transformer: superjson, // optional - adds superjson serialization
-  });
+  const ssg = generateSSGHelper();
 
   const slug = context.params?.slug;
 
